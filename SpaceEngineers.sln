@@ -1,0 +1,66 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.539
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "AbstractMasterSlaveInterComm", "AbstractMasterSlaveInterComm\AbstractMasterSlaveInterComm.shproj", "{57EE037E-566A-4498-A014-5394B75199B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShipFormation", "ShipFormation\ShipFormation.csproj", "{A03058CA-D0F1-4F42-8987-2EAAB908FB41}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Commons", "Commons\Commons.shproj", "{54EAC39E-4FDA-4590-8C16-509E7AA66E12}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Automatic Mining System", "Automatic Drill System\Automatic Mining System.csproj", "{3EB7A9E8-162E-4840-A4AD-8BF68F53AB90}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DockManager", "DockManager\DockManager.csproj", "{C7D1A4C9-85CF-4AD8-918F-738D0FFE2945}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReusableRocketManager", "ReusableRocketManager\ReusableRocketManager.csproj", "{9396653E-CA7F-4C85-A344-F782D91DD874}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinimalOrbit", "MinimalOrbit\MinimalOrbit.csproj", "{55C5725D-D58E-4F0F-9B8B-114D382AB913}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Boids", "Boids\Boids.csproj", "{CE2A64C7-E16E-4C4C-AE1E-517C4485D662}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Abstract Automatic Mining System", "Abstract Automatic Mining System\Abstract Automatic Mining System.shproj", "{A63ECB3A-EB66-428F-9371-09E22B1224B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlateformeForage", "PlateformeForage\PlateformeForage.csproj", "{743E7165-F6F8-446A-9CBA-96C57F892025}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Abstract Automatic Mining System\Abstract Automatic Mining System.projitems*{3eb7a9e8-162e-4840-a4ad-8bf68f53ab90}*SharedItemsImports = 4
+		Commons\Commons.projitems*{3eb7a9e8-162e-4840-a4ad-8bf68f53ab90}*SharedItemsImports = 4
+		Commons\Commons.projitems*{54eac39e-4fda-4590-8c16-509e7aa66e12}*SharedItemsImports = 13
+		AbstractMasterSlaveInterComm\AbstractMasterSlaveInterComm.projitems*{57ee037e-566a-4498-a014-5394b75199b6}*SharedItemsImports = 13
+		Abstract Automatic Mining System\Abstract Automatic Mining System.projitems*{743e7165-f6f8-446a-9cba-96c57f892025}*SharedItemsImports = 4
+		Commons\Commons.projitems*{743e7165-f6f8-446a-9cba-96c57f892025}*SharedItemsImports = 4
+		Commons\Commons.projitems*{9396653e-ca7f-4c85-a344-f782d91dd874}*SharedItemsImports = 4
+		AbstractMasterSlaveInterComm\AbstractMasterSlaveInterComm.projitems*{a03058ca-d0f1-4f42-8987-2eaab908fb41}*SharedItemsImports = 4
+		Commons\Commons.projitems*{a03058ca-d0f1-4f42-8987-2eaab908fb41}*SharedItemsImports = 4
+		Abstract Automatic Mining System\Abstract Automatic Mining System.projitems*{a63ecb3a-eb66-428f-9371-09e22b1224b5}*SharedItemsImports = 13
+		AbstractMasterSlaveInterComm\AbstractMasterSlaveInterComm.projitems*{ce2a64c7-e16e-4c4c-ae1e-517c4485d662}*SharedItemsImports = 4
+		Commons\Commons.projitems*{ce2a64c7-e16e-4c4c-ae1e-517c4485d662}*SharedItemsImports = 4
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A03058CA-D0F1-4F42-8987-2EAAB908FB41}.Debug|x64.ActiveCfg = Debug|x64
+		{A03058CA-D0F1-4F42-8987-2EAAB908FB41}.Debug|x64.Build.0 = Debug|x64
+		{3EB7A9E8-162E-4840-A4AD-8BF68F53AB90}.Debug|x64.ActiveCfg = Debug|x64
+		{3EB7A9E8-162E-4840-A4AD-8BF68F53AB90}.Debug|x64.Build.0 = Debug|x64
+		{C7D1A4C9-85CF-4AD8-918F-738D0FFE2945}.Debug|x64.ActiveCfg = Debug|x64
+		{C7D1A4C9-85CF-4AD8-918F-738D0FFE2945}.Debug|x64.Build.0 = Debug|x64
+		{9396653E-CA7F-4C85-A344-F782D91DD874}.Debug|x64.ActiveCfg = Debug|x64
+		{9396653E-CA7F-4C85-A344-F782D91DD874}.Debug|x64.Build.0 = Debug|x64
+		{55C5725D-D58E-4F0F-9B8B-114D382AB913}.Debug|x64.ActiveCfg = Debug|x64
+		{55C5725D-D58E-4F0F-9B8B-114D382AB913}.Debug|x64.Build.0 = Debug|x64
+		{CE2A64C7-E16E-4C4C-AE1E-517C4485D662}.Debug|x64.ActiveCfg = Debug|x64
+		{CE2A64C7-E16E-4C4C-AE1E-517C4485D662}.Debug|x64.Build.0 = Debug|x64
+		{743E7165-F6F8-446A-9CBA-96C57F892025}.Debug|x64.ActiveCfg = Debug|x64
+		{743E7165-F6F8-446A-9CBA-96C57F892025}.Debug|x64.Build.0 = Debug|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A02BDE00-5498-4580-98C8-BF1546E3BB2A}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,29 @@
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\Automatic Drill System.exe
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\Automatic Drill System.pdb
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\MDKUtilities.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\HavokWrapper.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\SharpDX.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\VRage.Native.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\VRage.OpenVRWrapper.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\VRage.Ansel.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\System.Collections.Immutable.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\SharpDX.Desktop.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\SharpDX.Mathematics.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\Microsoft.CodeAnalysis.CSharp.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\Microsoft.CodeAnalysis.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\SharpDX.DirectInput.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\DirectShowLib-2005.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\System.Reflection.Metadata.dll
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\SharpDX.xml
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\System.Collections.Immutable.xml
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\SharpDX.Desktop.xml
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\SharpDX.Mathematics.xml
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\Microsoft.CodeAnalysis.CSharp.xml
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\Microsoft.CodeAnalysis.xml
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\SharpDX.DirectInput.xml
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\bin\System.Reflection.Metadata.xml
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\obj\x64\Debug\Automatic Drill System.csprojAssemblyReference.cache
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\obj\x64\Debug\Automatic Drill System.csproj.CoreCompileInputs.cache
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\obj\x64\Debug\Automatic Drill System.csproj.CopyComplete
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\obj\x64\Debug\Automatic Drill System.exe
+C:\Users\Dubois\source\repos\Automatic Drill System\Automatic Drill System\obj\x64\Debug\Automatic Drill System.pdb
