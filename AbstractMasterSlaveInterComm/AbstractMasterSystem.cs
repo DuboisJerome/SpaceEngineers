@@ -35,12 +35,12 @@ namespace IngameScript
 				CheckIfSlaveReachable();
 			}
 
-			protected void CheckIfSlaveReachable()
+			protected virtual void CheckIfSlaveReachable()
 			{
 				RemoveNotReachableContact();
 			}
 
-			private void ListenToSlaveSearchingMaster()
+			protected void ListenToSlaveSearchingMaster()
 			{
 				ListenToEveryIndirectMsg(AbstractSlaveSystem.TAG_SEARCH_MASTER, ReserveSlave);
 			}

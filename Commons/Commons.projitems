@@ -9,7 +9,11 @@
     <Import_RootNamespace>Commons</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AbstractSEClass.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ConfigUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DelimitedString.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GPS.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)VectorUtils.cs" />
   </ItemGroup>
 </Project>

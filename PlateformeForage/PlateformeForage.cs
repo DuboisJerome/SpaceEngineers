@@ -23,57 +23,67 @@ namespace IngameScript
 	{
 		public class PlateformeForage : AbstractAMS<PlateformeForageParams>
 		{
-			const string PHASE_EXTENDING_DRILL = "PHASE_EXTENDING_DRILL";
-			const string PHASE_RETRACTING_DRILL = "PHASE_RETRACTING_DRILL";
+			const string PHASE_EXTENDING_PISTON = "PHASE_EXTENDING_PISTON";
+			const string PHASE_RETRACTING_HINGE = "PHASE_RETRACTING_HINGE";
+			const string PHASE_RETRACTING_PISTON = "PHASE_RETRACTING_PISTON";
 			const string PHASE_MOVING_HINGE = "PHASE_MOVING_HINGE";
+			const float deltaAngle = 0.005F;
 
-			private List<IMyPistonBase> listPistonVertical = new List<IMyPistonBase>();
+			private List<IMyPistonBase> listPiston = new List<IMyPistonBase>();
 			private IMyMotorStator mainRotor = null;
 			private IMyMotorStator mainHinge = null;
-			private List<IMyShipDrill> listDrills = new List<IMyShipDrill>();
+			private List<IMyShipDrill> listDrill = new List<IMyShipDrill>();
+			private List<IMyLightingBlock> listLight = new List<IMyLightingBlock>();
 
 			public PlateformeForage(PlateformeForageParams parameters) : base(parameters)
 			{
-				// find cockpit
-				IMyCockpit cockpit = GetProgram().GridTerminalSystem.GetBlockWithName("Cockpit") as IMyCockpit;
-				if(cockpit != null)
-				{					
-					this.logger = new Logger(cockpit.GetSurface(0));
-					this.logger.MinLvl = Logger.Level.INFO;
-				} else
-				{
-					this.logger.Warn("No cockpit name Cockpit found");
-				}
-
-				AMSPhase phase1 = this.AddPhase(PHASE_EXTENDING_DRILL, RunPhaseGoDown);
-				AMSPhase phase2 = this.AddPhase(PHASE_RETRACTING_DRILL, RunPhaseGoUp);
-				AMSPhase phase3 = this.AddPhase(PHASE_MOVING_HINGE, RunPhaseInclinate);
+				AMSPhase phase1 = this.AddPhase(PHASE_EXTENDING_PISTON, RunPhaseExtendingPistons);
+				AMSPhase phase2 = this.AddPhase(PHASE_RETRACTING_HINGE, RunPhaseRetractingHinge, BeforeFirstRunPhaseRetractingHinge);
+				AMSPhase phase3 = this.AddPhase(PHASE_RETRACTING_PISTON, RunPhaseRetractingPistons);
+				AMSPhase phase4 = this.AddPhase(PHASE_MOVING_HINGE, RunPhaseInclinate, BeforeFirstRunPhaseInclinate);
 
 				// set worflow
-				phaseLaunch.NextPhase = phase1;
+				AfterLaunch(phase1);
 				phase1.NextPhase = phase2;
 				phase2.NextPhase = phase3;
-				phase3.NextPhase = phase1;
+				phase3.NextPhase = phase4;
+				phase4.NextPhase = phase1;
 			}
 
 			protected override void LoadBlocks()
 			{
-				listDrills = new List<IMyShipDrill>();
-				GetProgram().GridTerminalSystem.GetBlocksOfType(listDrills);
+				listDrill = new List<IMyShipDrill>();
+				GetProgram().GridTerminalSystem.GetBlocksOfType(listDrill);
 
-				listPistonVertical = new List<IMyPistonBase>();
-				GetProgram().GridTerminalSystem.GetBlocksOfType(listPistonVertical);
+				listPiston = new List<IMyPistonBase>();
+				GetProgram().GridTerminalSystem.GetBlocksOfType(listPiston);
+				foreach (IMyPistonBase p in listPiston)
+				{
+					p.SetValue("ShareInertiaTensor", true);
+				}
+
+				listLight = new List<IMyLightingBlock>();
+				GetProgram().GridTerminalSystem.GetBlocksOfType(listLight);
+
 
 				mainRotor = GetProgram().GridTerminalSystem.GetBlockWithName(Params.MainRotorName) as IMyMotorStator;
 				if (mainRotor == null)
 				{
 					logger.Warn("No rotor \"" + Params.MainRotorName + "\" found");
 				}
+				else
+				{
+					mainRotor.SetValue("ShareInertiaTensor", true);
+				}
 
 				mainHinge = GetProgram().GridTerminalSystem.GetBlockWithName(Params.MainHingeName) as IMyMotorStator;
 				if (mainHinge == null)
 				{
 					logger.Warn("No hinge \"" + Params.MainHingeName + "\" found");
+				}
+				else
+				{
+					mainHinge.SetValue("ShareInertiaTensor", true);
 				}
 			}
 
@@ -85,12 +95,17 @@ namespace IngameScript
 				{
 					mainRotor.TargetVelocityRPM = Params.MainRotorVitesse;
 				}
+
+				foreach (IMyLightingBlock l in listLight)
+				{
+					l.Color = Color.White;
+				}
 			}
 
 			protected override void Stop()
 			{
 				base.Stop();
-				foreach (IMyPistonBase p in listPistonVertical)
+				foreach (IMyPistonBase p in listPiston)
 				{
 					p.Velocity = 0F;
 				}
@@ -105,9 +120,20 @@ namespace IngameScript
 				SetDrillsOnOff(false);
 			}
 
+			protected override bool BeforeFirstRunResetPosition()
+			{
+				GetPhase(PHASE_RETRACTING_HINGE).Init();
+				GetPhase(PHASE_RETRACTING_PISTON).Init();
+				return false;
+			}
 			protected override bool ResetPosition()
 			{
-				return RunPhaseGoUp();
+				bool isPhaseEnded = GetPhase(PHASE_RETRACTING_HINGE).Run();
+				if (isPhaseEnded)
+				{
+					isPhaseEnded = GetPhase(PHASE_RETRACTING_PISTON).Run();
+				}
+				return isPhaseEnded;
 			}
 
 			protected override void OnEnd()
@@ -118,97 +144,19 @@ namespace IngameScript
 					mainHinge.UpperLimitDeg = 0F;
 					mainHinge.TargetVelocityRPM = 0F;
 				}
-				if(mainRotor != null)
+				if (mainRotor != null)
 				{
 					mainRotor.TargetVelocityRPM = 0F;
 				}
+				SetDrillsOnOff(false);
 			}
 
-			private bool RunPhaseGoDown()
+			private bool RunPhaseExtendingPistons()
 			{
-				if (listPistonVertical == null || listPistonVertical.Count <= 0)
+				if (listPiston == null || listPiston.Count <= 0)
 					return true;
-				SetDrillsOnOff(true);
-
-				return ExtendingPistons();
-			}
-
-			private bool RunPhaseGoUp()
-			{
-				bool isEnd = RetractingHinge();
-				logger.Debug("Is hinge retracted = " + isEnd);
-				if (isEnd)
-				{
-					isEnd = RetractingPistons();
-					logger.Debug("Is piston retracted = " + isEnd);
-				}
-				return isEnd;
-			}
-
-			private bool RunPhaseInclinate()
-			{
-				if (mainHinge == null)
-					return true;
-				bool isEnd = false;
-				double currentAngle = Math.Round(mainHinge.Angle * 180.0 / Math.PI);
-				logger.Debug("ll = " + mainHinge.LowerLimitDeg);
-				logger.Debug("ul = " + mainHinge.UpperLimitDeg);
-				logger.Debug("a = " + currentAngle);
-				logger.Debug("tv = " + mainHinge.TargetVelocityRPM);
-				if (currentAngle <= mainHinge.LowerLimitDeg)
-				{
-					// May need to move
-					if (mainHinge.UpperLimitDeg <= Params.MainHingeMaxAngle)
-					{
-						// Next step
-						mainHinge.TargetVelocityRPM = 1F;
-						mainHinge.UpperLimitDeg += Params.MainHingeStepAngle;
-					}
-					else
-					{
-						isEnd = true;
-						currentPhase = GetPhase(PHASE_ENDING);
-					}
-				} else
-				{
-					// is moving	
-					if (mainHinge.TargetVelocityRPM <= 0.005)
-					{
-						mainHinge.TargetVelocityRPM = 1F;
-					}
-					if(currentAngle >= mainHinge.UpperLimitDeg - 0.005)
-					{
-						isEnd = true;
-						mainHinge.TargetVelocityRPM = 0F;
-						mainHinge.LowerLimitDeg += Params.MainHingeStepAngle;
-					}
-				}
-
-				return isEnd;
-			}
-
-			private bool RetractingPistons()
-			{
-				bool isAllRetracted = true;
-				foreach (IMyPistonBase p in listPistonVertical)
-				{
-					if (p.Status != PistonStatus.Retracted)
-					{
-						isAllRetracted = false;
-						// retracts
-						p.SetValue("Velocity", Params.PistonVitesseMonte);
-						// share inertia tensor
-						p.SetValue("ShareInertiaTensor", true);
-					}
-				}
-
-				return isAllRetracted;
-			}
-
-			private bool ExtendingPistons()
-			{
 				// Extends piston one by one
-				IMyPistonBase currentPistonExtending = listPistonVertical.Find(p => p.Status == PistonStatus.Extending);
+				IMyPistonBase currentPistonExtending = listPiston.Find(p => p.Status == PistonStatus.Extending);
 
 				if (currentPistonExtending != null)
 				{
@@ -217,7 +165,7 @@ namespace IngameScript
 					return false;
 				}
 
-				foreach (IMyPistonBase p in listPistonVertical)
+				foreach (IMyPistonBase p in listPiston)
 				{
 					if (p.Status != PistonStatus.Extended)
 					{
@@ -231,37 +179,93 @@ namespace IngameScript
 				return true;
 			}
 
-			private bool RetractingHinge()
+			private bool BeforeFirstRunPhaseRetractingHinge()
 			{
 				if (mainHinge == null)
 					return true;
-				bool isEnd = false;
-				double currentAngle = Math.Round(mainHinge.Angle * 180.0 / Math.PI);
-				logger.Debug("ll = " + mainHinge.LowerLimitDeg);
-				logger.Debug("a = " + currentAngle);
-				logger.Debug("tv = " + mainHinge.TargetVelocityRPM);
-				if (currentAngle > mainHinge.LowerLimitDeg)
+				mainHinge.LowerLimitDeg = 0F;
+				foreach (IMyPistonBase p in listPiston)
 				{
-					if (mainHinge.TargetVelocityRPM >= -0.005)
-					{
-						mainHinge.TargetVelocityRPM = -1F;
-					}
-					else
-					{
-						// retracting
-					}
+					p.SetValue("Velocity", 0F);
+				}
+				return false;
+			}
+
+
+			/**
+			 * Retracting hinge to 0 angle
+			 */
+			private bool RunPhaseRetractingHinge()
+			{
+				return RunPhaseHingeToAngle(mainHinge.LowerLimitDeg, 3F);
+			}
+
+			private bool BeforeFirstRunPhaseInclinate()
+			{
+				if (mainHinge == null)
+					return true;
+				// May need to move
+				float nextAngle = mainHinge.UpperLimitDeg + Params.MainHingeStepAngle;
+				bool isFinalEnd = nextAngle > Params.MainHingeMaxAngle;
+				if (isFinalEnd)
+				{
+					logger.Debug("Final:" + nextAngle);
+					ToPhaseEnd();
 				}
 				else
 				{
-					isEnd = true;
+					// Next step
+					mainHinge.UpperLimitDeg = nextAngle;
+				}
+				return isFinalEnd;
+			}
+
+			private bool RunPhaseInclinate()
+			{
+				return RunPhaseHingeToAngle(mainHinge.UpperLimitDeg, 1.5F);
+			}
+
+			private bool RunPhaseHingeToAngle(float angle, float maxAbsSpeed = 1F)
+			{
+				float speed = GetHingeSpeedNeedToAngle(angle, maxAbsSpeed);
+				mainHinge.TargetVelocityRPM = speed;
+				return speed == 0;
+			}
+
+			private bool RunPhaseRetractingPistons()
+			{
+				bool isAllRetracted = true;
+				foreach (IMyPistonBase p in listPiston)
+				{
+					if (p.Status != PistonStatus.Retracted)
+					{
+						isAllRetracted = false;
+						// retracts
+						p.SetValue("Velocity", Params.PistonVitesseMonte);
+					}
 				}
 
-				return isEnd;
+				return isAllRetracted;
+			}
+
+			private double GetHingeAngle()
+			{
+				double currentAngle = Math.Round(mainHinge.Angle * 180.0 / Math.PI);
+				logger.Debug("Hinge => " + mainHinge.LowerLimitDeg + " < " + currentAngle + " < " + mainHinge.UpperLimitDeg);
+				return currentAngle;
+			}
+
+			private float GetHingeSpeedNeedToAngle(float limit, float speed = 1F)
+			{
+				double angle = GetHingeAngle();
+				double max = limit + deltaAngle;
+				double min = limit - deltaAngle;
+				return angle > max ? -speed : (angle < min ? speed : 0F);
 			}
 
 			private void SetDrillsOnOff(bool isOn)
 			{
-				foreach (IMyShipDrill d in listDrills)
+				foreach (IMyShipDrill d in listDrill)
 				{
 					d.SetValue("OnOff", isOn);
 				}
@@ -269,21 +273,25 @@ namespace IngameScript
 
 			protected override bool IsFull()
 			{
-				foreach(IMyShipDrill d in listDrills)
+				foreach (IMyShipDrill d in listDrill)
 				{
 					IMyInventory inventory = d.GetInventory();
-					double pourcentFull = (100D* inventory.CurrentVolume.RawValue) / inventory.MaxVolume.RawValue;
-					// Si une foreuse est rempli à plus de 25%
-					if (pourcentFull > 25)
-					{
-						logger.Warn("Drill inventory = "+ pourcentFull+"%");
-					}
-					if (pourcentFull >= 99)
+					double pourcentFull = (100D * inventory.CurrentVolume.RawValue) / inventory.MaxVolume.RawValue;
+					if (pourcentFull >= 80)
 					{
 						return true;
 					}
 				}
 				return base.IsFull();
+			}
+
+			protected override void AlertFull()
+			{
+				foreach (IMyLightingBlock l in listLight)
+				{
+					l.Color = Color.OrangeRed;
+				}
+				base.AlertFull();
 			}
 		}
 	}

@@ -32,13 +32,15 @@ namespace IngameScript
 			protected const string PHASE_NONE = "PHASE_NONE";
 			protected const string PHASE_LAUNCH = "PHASE_LAUNCH";
 			protected const string PHASE_ENDING = "PHASE_ENDING";
+			protected const string PHASE_END = "PHASE_END";
 
 			protected Logger logger;
 			protected bool isRunning;
-			protected AMSPhase currentPhase;
-			protected AMSPhase phaseNone;
-			protected AMSPhase phaseLaunch;
-			protected AMSPhase phaseEnding;
+			private AMSPhase currentPhase;
+			private AMSPhase phaseNone;
+			private AMSPhase phaseLaunch;
+			private AMSPhase phaseEnding;
+			private AMSPhase phaseEnd;
 
 			protected List<AMSPhase> listPhase = new List<AMSPhase>();
 
@@ -48,14 +50,20 @@ namespace IngameScript
 				logger = new Logger(GetProgram());
 				this.isRunning = false;
 				phaseNone = AddPhase(PHASE_NONE, RunPhaseNone);
-				phaseLaunch = AddPhase(PHASE_LAUNCH, RunPhaseLaunch);
-				phaseEnding = AddPhase(PHASE_ENDING, RunPhaseEnd);
+				phaseLaunch = AddPhase(PHASE_LAUNCH, ResetPosition, BeforeFirstRunResetPosition);
+				phaseEnding = AddPhase(PHASE_ENDING, ResetPosition, BeforeFirstRunResetPosition);
+				phaseEnd = AddPhase(PHASE_END, RunPhaseEnd);
+				phaseEnding.NextPhase = phaseEnd;
 				this.currentPhase = phaseNone;
 			}
-			
-			protected AMSPhase AddPhase(string name, AMSPhase.AMSPhaseRun fcntRun)
+
+			protected AMSPhase AddPhase(string name, Func<bool> fcntRun,
+				Func<bool> beforeFirstRun = null)
 			{
-				AMSPhase phase = new AMSPhase(name, fcntRun);
+				AMSPhase phase = new AMSPhase(name, fcntRun)
+				{
+					BeforeFirstRun = beforeFirstRun
+				};
 				this.listPhase.Add(phase);
 				return phase;
 			}
@@ -74,30 +82,25 @@ namespace IngameScript
 			/** Go to start position
 			 * @return is position reset 
 			 */
-			protected abstract bool ResetPosition();
-			protected virtual void OnEnd()
+			protected virtual bool BeforeFirstRunResetPosition()
 			{
-
+				return false;
 			}
+			protected abstract bool ResetPosition();
 			protected bool RunPhaseNone()
 			{
 				isRunning = false;
 				return false;
 			}
 
-			protected bool RunPhaseLaunch()
+			protected virtual void OnEnd()
 			{
-				return ResetPosition();
 			}
 
 			protected bool RunPhaseEnd()
 			{
-				bool isPhaseEnded = ResetPosition();
-				if (isPhaseEnded)
-				{
-					OnEnd();
-				}
-				return isPhaseEnded;
+				OnEnd();
+				return true;
 			}
 
 			public void Run(string arg, UpdateType updateSource)
@@ -131,6 +134,7 @@ namespace IngameScript
 			protected virtual void Start()
 			{
 				logger.Info("==> Start");
+				bool wasRunning = isRunning;
 				isRunning = true;
 				this.LoadBlocks();
 				// If off, start from the beginning = launch
@@ -138,6 +142,10 @@ namespace IngameScript
 				if (currentPhase.Name == PHASE_NONE)
 				{
 					currentPhase = phaseLaunch;
+				}
+				if (!wasRunning)
+				{
+					currentPhase.Init();
 				}
 			}
 			/** Manual Commande Stop */
@@ -147,24 +155,39 @@ namespace IngameScript
 				isRunning = false;
 				this.LoadBlocks();
 			}
-			/** Manual  Commande Reset */
+			/** Manual Commande Reset */
 			protected virtual void Reset()
 			{
 				logger.Info("==> Reset");
 				isRunning = true;
-				currentPhase = phaseEnding;
+				ToPhaseEnd();
 				this.logger.Clear();
 				this.LoadBlocks();
 			}
 
 			protected virtual void NextStep()
 			{
-				logger.Info("==> Force Next Step");
-				currentPhase = currentPhase.NextPhase;
+				ChangePhase(currentPhase.NextPhase);
+			}
+
+			protected void AfterLaunch(AMSPhase phase)
+			{
+				this.phaseLaunch.NextPhase = phase;
+			}
+
+			protected void ToPhaseEnd()
+			{
+				ChangePhase(phaseEnding);
+			}
+
+			protected void ChangePhase(AMSPhase newPhase)
+			{
+				currentPhase = newPhase;
 				if (currentPhase == null)
 				{
 					currentPhase = phaseNone;
 				}
+				currentPhase.Init();
 			}
 
 			/** Run every ticks */
@@ -179,6 +202,7 @@ namespace IngameScript
 				bool isPhaseEnded = currentPhase.Run();
 				if (isPhaseEnded)
 				{
+					logger.Debug("End: " + currentPhase.Name);
 					NextStep();
 				}
 			}

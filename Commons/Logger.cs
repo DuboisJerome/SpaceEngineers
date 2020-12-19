@@ -30,9 +30,9 @@ namespace IngameScript
 
 			private readonly IMyTextSurface _surface;
 
-			private MyGridProgram _p;
+			private readonly MyGridProgram _p;
 			private string lastLine;
-			private StringBuilder _sb;
+			private List<string> _sb = new List<string>();
 			public Level MinLvl { get; set; } = Level.DEBUG;
 
 			public Logger(MyGridProgram p)
@@ -46,17 +46,15 @@ namespace IngameScript
 				}
 				else
 				{
-					p.Echo("Logger " + _surface + " found");
+					p.Echo("Logger surface found");
 				}
 				this._surface.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
-				this._sb = new StringBuilder();
 			}
 
 			public Logger(IMyTextSurface s)
 			{
 				this._surface = s;
 				this._surface.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
-				this._sb = new StringBuilder();
 			}
 
 			public void Debug(object o)
@@ -83,12 +81,17 @@ namespace IngameScript
 			{
 				if (this._surface == null || (ushort)MinLvl > (ushort)level)
 					return;
-				string line = "[" + level + "] : " + o + Environment.NewLine;
+				string line = "[" + level.ToString()[0] + "] - "+DateTime.UtcNow.ToString("HH:mm:ss.fff")+" : " + o;
 				if (line == lastLine)
 					return;
-				_sb.Insert(0, line);
+				_sb.Insert(0,line);
 				lastLine = line;
-				this._surface.WriteText(_sb.ToString());
+				int N = 2000;
+				if(_sb.Count > N)
+				{
+					_sb.RemoveRange(N, _sb.Count-N);
+				}
+				this._surface.WriteText(String.Join(Environment.NewLine, _sb));
 				if(_p != null)
 				{
 					_p.Echo(_sb.ToString());

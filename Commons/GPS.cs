@@ -42,14 +42,16 @@ namespace IngameScript
 
 			public GPS(string str)
 			{
-				string[] s = str.Split(';');
-				this.x=int.Parse(s[0]);
-				this.y=int.Parse(s[1]);
-				this.z=int.Parse(s[2]);
+				int[] s = DelimitedString.ReadDelimited(str, ';', int.Parse);
+				this.x=s[0];
+				this.y=s[1];
+				this.z=s[2];
 			}
 
-			public bool Equals(GPS gps)
+			public override bool Equals(object obj)
 			{
+				GPS gps = obj as GPS;
+
 				if (gps == null)
 				{
 					return false;
@@ -60,9 +62,15 @@ namespace IngameScript
 				}
 			}
 
+			public override int GetHashCode()
+			{
+				return this.x + this.y + this.z;
+			}
+
 			public override string ToString()
 			{
-				return x + ";" + y + ";" + z;
+				int[] arr = { x, y, z };
+				return DelimitedString.WriteDelimited(arr, ';');
 			}
 
 			public GPS ComputeCoordinate(long distance, double angle)
@@ -82,6 +90,16 @@ namespace IngameScript
 				double y = Math.Pow(o.y - this.y, 2);
 				double z = Math.Pow(o.z - this.z, 2);
 				return Math.Sqrt(x+y+z);
+			}
+			// Next GPS a this speed
+			public GPS ComputeGPS(Vector3D speed, double durationSec = 1D)
+			{
+				return new GPS(x + (int)(speed.X*durationSec), y + (int)(speed.Y*durationSec), z + (int)(speed.Z*durationSec));
+			}
+
+			public Vector3D ToVector3D()
+			{
+				return new Vector3D(x, y, z);
 			}
 		}
 	}

@@ -81,7 +81,7 @@ namespace IngameScript
 				return p.IGC.UnicastListener.HasPendingMessage;
 			}
 
-			public void ListenToOneDirectMsg(FcntMessageReader reader)
+			public void ListenToOneDirectMsg(Action<MyIGCMessage> reader)
 			{
 				IMyUnicastListener l = p.IGC.UnicastListener;
 				if (l.HasPendingMessage)
@@ -90,7 +90,7 @@ namespace IngameScript
 				}
 			}
 
-			public void ListenToEveryDirectMsg(FcntMessageReader reader)
+			public void ListenToEveryDirectMsg(Action<MyIGCMessage> reader)
 			{
 				IMyUnicastListener l = p.IGC.UnicastListener;
 				while (l.HasPendingMessage)
@@ -99,7 +99,7 @@ namespace IngameScript
 				}
 			}
 
-			public void ListenToOneIndirectMsg(string tag, FcntMessageReader reader)
+			public void ListenToOneIndirectMsg(string tag, Action<MyIGCMessage> reader)
 			{
 				IMyBroadcastListener l = p.IGC.RegisterBroadcastListener(tag);
 				if (l.HasPendingMessage)
@@ -108,7 +108,7 @@ namespace IngameScript
 				}
 			}
 
-			public void ListenToEveryIndirectMsg(string tag, FcntMessageReader reader)
+			public void ListenToEveryIndirectMsg(string tag, Action<MyIGCMessage> reader)
 			{
 				IMyBroadcastListener l = p.IGC.RegisterBroadcastListener(tag);
 				while (l.HasPendingMessage)
@@ -128,8 +128,6 @@ namespace IngameScript
 			}
 
 			public abstract void Run();
-
-			public delegate void FcntMessageReader(MyIGCMessage msg);
 		}
 	} 
 }

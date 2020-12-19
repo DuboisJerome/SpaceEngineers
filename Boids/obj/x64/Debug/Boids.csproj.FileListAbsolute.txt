@@ -1,0 +1,3 @@
+C:\Users\Jeux\source\repos\SpaceEngineers\Boids\obj\x64\Debug\Boids.csprojAssemblyReference.cache
+C:\Users\Jeux\source\repos\SpaceEngineers\Boids\obj\x64\Debug\Boids.exe.config
+C:\Users\Jeux\source\repos\SpaceEngineers\Boids\obj\x64\Debug\Boids.csproj.CoreCompileInputs.cache

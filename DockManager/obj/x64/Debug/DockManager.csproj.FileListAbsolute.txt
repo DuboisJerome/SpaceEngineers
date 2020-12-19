@@ -27,3 +27,8 @@ C:\Users\Dubois\source\repos\DockManager\DockManager\obj\x64\Debug\DockManager.c
 C:\Users\Dubois\source\repos\DockManager\DockManager\obj\x64\Debug\DockManager.csproj.CopyComplete
 C:\Users\Dubois\source\repos\DockManager\DockManager\obj\x64\Debug\DockManager.exe
 C:\Users\Dubois\source\repos\DockManager\DockManager\obj\x64\Debug\DockManager.pdb
+C:\Users\Jeux\source\repos\SpaceEngineers\DockManager\obj\x64\Debug\DockManager.csprojAssemblyReference.cache
+C:\Users\Jeux\source\repos\SpaceEngineers\DockManager\obj\x64\Debug\DockManager.exe.config
+C:\Users\Jeux\source\repos\SpaceEngineers\DockManager\obj\x64\Debug\DockManager.csproj.CoreCompileInputs.cache
+C:\Users\Jeux\source\repos\SpaceEngineers\DockManager\obj\x64\Debug\DockManager.exe
+C:\Users\Jeux\source\repos\SpaceEngineers\DockManager\obj\x64\Debug\DockManager.pdb

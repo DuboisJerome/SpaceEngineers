@@ -1,0 +1,3 @@
+C:\Users\Jeux\source\repos\SpaceEngineers\Automatic Drill System\obj\x64\Debug\Automatic Mining System.csprojAssemblyReference.cache
+C:\Users\Jeux\source\repos\SpaceEngineers\Automatic Drill System\obj\x64\Debug\Automatic Drill System.exe.config
+C:\Users\Jeux\source\repos\SpaceEngineers\Automatic Drill System\obj\x64\Debug\Automatic Mining System.csproj.CoreCompileInputs.cache

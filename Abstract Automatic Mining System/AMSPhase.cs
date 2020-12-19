@@ -24,20 +24,49 @@ namespace IngameScript
 		public class AMSPhase
 		{
 
-			public AMSPhase(string name, AMSPhaseRun fcntRun)
+			private readonly Func<bool> RunImpl;
+			public AMSPhase(string name, Func<bool> fcntRun)
 			{
 				Name = name;
-				Run = fcntRun;
+				RunImpl = fcntRun;
 				NextPhase = null;
 			}
 
 			public string Name { get; }
 
-			public AMSPhaseRun Run { get; }
+
+			public bool Run()
+			{
+				bool isEnd = false;
+				if (FirstCall)
+				{
+					isEnd = DoIfNotEnd(BeforeFirstRun, isEnd);
+				}
+				isEnd = DoIfNotEnd(RunImpl, isEnd);
+				FirstCall = false;
+				return isEnd;
+			}
+
+			private bool DoIfNotEnd(Func<bool> a, bool isEnd)
+			{
+				if (a != null && !isEnd)
+				{
+					return a();
+				}
+				return isEnd;
+			}
+
+			public Func<bool> BeforeFirstRun { get; set; }
 
 			public AMSPhase NextPhase { get; set; }
+			private bool FirstCall { get; set; } = false;
 
-			public delegate bool AMSPhaseRun();
+			public AMSPhase Init()
+			{
+				FirstCall = true;
+				return this;
+			}
+
 		}
 	}
 }

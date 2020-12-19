@@ -33,7 +33,7 @@ namespace IngameScript
 			public float MainRotorVitesse { get; set; } = 6;
 			public string MainHingeName { get; set; } = "MainHinge";
 			public float MainHingeStepAngle { get; set; } = 6;
-			public float MainHingeMaxAngle { get; set; } = 75F;
+			public float MainHingeMaxAngle { get; set; } = 80F;
 		}
 	}
 }
