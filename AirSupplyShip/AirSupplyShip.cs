@@ -21,7 +21,7 @@ namespace IngameScript
 {
 	partial class Program
 	{
-		public class AirSupplyShip
+		public class AirSupplyShip : AutopilotShip
 		{
 
 		}

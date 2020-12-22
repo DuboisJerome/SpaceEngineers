@@ -21,5 +21,17 @@ namespace IngameScript
 {
 	partial class Program : MyGridProgram
 	{
+		Program()
+		{
+			BuildConfig(Me);
+			Runtime.UpdateFrequency = UpdateFrequency.None;
+		}
+
+		void Main(string arg, UpdateType updateType)
+		{
+
+			if ((updateType & UpdateType.Update1) == 0) //dont run bulk of code until in update loop
+				return;
+		}
 	}
 }

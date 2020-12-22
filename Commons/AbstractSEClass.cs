@@ -25,20 +25,19 @@ namespace IngameScript
 		{
 			protected readonly MyGridProgram p;
 			protected readonly Logger LOGGER;
-            protected ConfigUtils config;
+            protected readonly ConfigUtils config;
 
             public AbstractSEClass(MyGridProgram p)
 			{
 				this.p = p;
-                this.config = new ConfigUtils(p.Me);
                 this.LOGGER = new Logger(p.Me.GetSurface(0));
-                InitConfig();
-                LoadBlocks();
+                this.config = new ConfigUtils(p.Me);
+                BuildConfig();
 			}
 
-			public abstract bool LoadBlocks();
+			protected abstract bool LoadBlocks();
 
-            public virtual void InitConfig() { }
+            protected virtual void BuildConfig() { }
 
             protected double GetShipFarthestEdgeDistance(IMyShipController reference)
 			{
@@ -136,9 +135,15 @@ namespace IngameScript
 
                 return closestBlock;
             }
+
+            protected void Debug(string name, Vector3D val)
+			{
+                LOGGER.Debug(name + " = " + (val == null ? "NULL VAL" : "Vecteur(O,("+val.X+","+val.Y+","+val.Z+"))"));
+            }
+            protected void Debug<T>(string name, T val)
+			{
+                LOGGER.Debug(name + " = " + (val == null ? "NULL VAL" : val.ToString()));
+			}
         }
-
-
-
     }
 }

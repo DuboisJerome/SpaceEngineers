@@ -42,10 +42,10 @@ namespace IngameScript
 
 			public GPS(string str)
 			{
-				int[] s = DelimitedString.ReadDelimited(str, ';', int.Parse);
-				this.x=s[0];
-				this.y=s[1];
-				this.z=s[2];
+				double[] s = DelimitedString.ReadDelimited(str, ';', double.Parse);
+				this.x=(int)s[0];
+				this.y= (int)s[1];
+				this.z= (int)s[2];
 			}
 
 			public override bool Equals(object obj)

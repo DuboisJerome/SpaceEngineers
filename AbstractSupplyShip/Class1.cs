@@ -673,6 +673,12 @@ namespace IngameScript
             //---Get Roll and Pitch Angles 
             anglePitch = Math.Acos(MathHelper.Clamp(alignmentVec.Dot(referenceForward) / alignmentVec.Length(), -1, 1)) - Math.PI / 2;
 
+            ///////////////
+            
+            ///
+
+
+
             Vector3D planetRelativeLeftVec = referenceForward.Cross(alignmentVec);                                                                                                                   //w.H.i.p.L.A.s.h.1.4.1
             angleRoll = Math.Acos(MathHelper.Clamp(referenceLeft.Dot(planetRelativeLeftVec) / planetRelativeLeftVec.Length(), -1, 1));
             angleRoll *= Math.Sign(VectorProjection(referenceLeft, alignmentVec).Dot(alignmentVec)); //ccw is positive 

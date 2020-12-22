@@ -53,11 +53,7 @@ namespace IngameScript
                     {
                         var variableName = words[0].Trim();
                         var variableValue = words[1].Trim();
-                        string dictValue;
-                        if (configDict.TryGetValue(variableName, out dictValue))
-                        {
-                            configDict[variableName] = variableValue;
-                        }
+                        configDict[variableName] = variableValue;
                     }
                 }
             }
