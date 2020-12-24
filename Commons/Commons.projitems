@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)AbstractSEClass.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StepManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ConfigUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DelimitedString.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GPS.cs" />

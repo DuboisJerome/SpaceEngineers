@@ -25,13 +25,13 @@ namespace IngameScript
 		{
 			// if a0 >= 0 => NegativeInfinity, you will never be able to stop you are not decelerating
 			// a_0 and v_0 must be colinear
-			public static double TimeToStop(double a_0, double v_0 = 0)
+			public static double TimeToStop(double a_0, double v_0)
 			{
 				// v_t = a_0*t + v_0 = 0
 				//t = (v_t - v_0) / a_0
-				if(a_0 >= 0)
+				if(a_0 == 0)
 					return Double.NegativeInfinity;
-				return -v_0 / a_0;
+				return Math.Abs(v_0) / Math.Abs(a_0);
 			}
 
 			public static double Position(double a_0, double v_0, double x_0, double t)
@@ -50,13 +50,26 @@ namespace IngameScript
 			// a_0 and v_0 must be colinear
 			public static double MaxInitialSpeedToStop(double x_t, double a_0)
 			{
-				// x_t = 1/2*a_0*t*t + v_0*t + x_0 --> where x_0 = 0
 				// v_t = a_0*t + v_0 = 0 --> v_0 = -a_0*t
+				// x_t = 1/2*a_0*t*t + v_0*t + x_0 --> where x_0 = 0
 				// x_t = 1/2*a_0*t*t - a_0*t*t = -1/2 * a_0*t*t
 				// t*t = -2*x_t/a_0 --> t = sqrt(-2*x_t/a_0)
+				// v_0 = -a_0* sqrt(-2*x_t/a_0)
 				if (a_0 >= 0)
 					return Double.PositiveInfinity;
-				return Math.Sqrt(-2 * x_t / a_0);
+				return Math.Abs(a_0*Math.Sqrt(Math.Abs(2 * x_t / a_0)));
+			}
+
+			public static double DistanceToStop(double a_0, double v_0)
+			{
+				// x_t = 1/2*a_0*t*t + v_0*t + x_0 --> where x_0 = 0
+				// v_t = a_0*t + v_0 = 0
+				// t = (v_t - v_0) / a_0 = -v_0/a_0
+				// x_t = 1/2*a_0*(-v_0/a_0)*(-v_0/a_0) + v_0*(-v_0/a_0) + 0
+				// x_t = 1/2*(v_0*v_0)/a_0 - (v_0*v_0)/a_0
+				// x_t = -(v_0*v_0)/(2*a_0)
+				double d = - (v_0 * v_0) / 2*a_0;
+				return Math.Abs(d);
 			}
 		}
 	}

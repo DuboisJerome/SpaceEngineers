@@ -34,6 +34,40 @@ namespace IngameScript
 				return a - Projection(a, b);
 			}
 
+			public static Base6Directions.Direction GetDirection(string dirStr)
+			{
+				Base6Directions.Direction d;
+				switch (dirStr)
+				{
+					case "BACKWARD":
+					case "B":
+						d = Base6Directions.Direction.Backward;
+						break;
+					case "UP":
+					case "U":
+						d = Base6Directions.Direction.Up;
+						break;
+					case "DOWN":
+					case "D":
+						d = Base6Directions.Direction.Down;
+						break;
+					case "LEFT":
+					case "L":
+						d = Base6Directions.Direction.Left;
+						break;
+					case "RIGHT":
+					case "R":
+						d = Base6Directions.Direction.Right;
+						break;
+					case "FORWARD":
+					case "F":
+					default:
+						d = Base6Directions.Direction.Forward;
+						break;
+				}
+				return d;
+			}
+
 			public static Vector3D GetDirection(IMyEntity refBlock, string dirStr)
 			{
 				return GetDirection(refBlock.WorldMatrix, dirStr);
@@ -41,32 +75,27 @@ namespace IngameScript
 
 			public static Vector3D GetDirection(MatrixD m, string dirStr)
 			{
+				Base6Directions.Direction d = GetDirection(dirStr);
 				string upperDir = dirStr == null ? "F" : dirStr.ToUpper();
 				Vector3D r;
-				switch (dirStr)
+				switch (d)
 				{
-					case "BACKWARD":
-					case "B":
+					case Base6Directions.Direction.Backward:
 						r = m.Backward;
 						break;
-					case "UP":
-					case "U":
+					case Base6Directions.Direction.Up:
 						r = m.Up;
 						break;
-					case "DOWN":
-					case "D":
+					case Base6Directions.Direction.Down:
 						r = m.Down;
 						break;
-					case "LEFT":
-					case "L":
+					case Base6Directions.Direction.Left:
 						r = m.Left;
 						break;
-					case "RIGHT":
-					case "R":
+					case Base6Directions.Direction.Right:
 						r = m.Right;
 						break;
-					case "FORWARD":
-					case "F":
+					case Base6Directions.Direction.Forward:
 					default:
 						r = m.Forward;
 						break;

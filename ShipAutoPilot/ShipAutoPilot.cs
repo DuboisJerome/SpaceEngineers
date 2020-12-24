@@ -23,7 +23,19 @@ namespace IngameScript
 	{
 		public class ShipAutoPilot : AbstractSEClass
 		{
+			#region flags
 
+			[Flags]
+			public enum ThrustersFlag : byte
+			{
+				Braking = 1,
+				Accelerating = 2,
+				Others = 4,
+				All = Braking | Accelerating | Others, // 7
+				NonBraking = All ^ Braking, // 6
+				NonAccelerating = All ^ Accelerating // 5
+			}
+			#endregion
 			#region Const fields
 			public const UpdateType UPDATE_TYPE = UpdateType.Update1;
 			public const UpdateFrequency UPDATE_FREQUENCY = UpdateFrequency.Update1;
@@ -46,20 +58,21 @@ namespace IngameScript
 			#region Variable fields
 			protected IMyShipController referenceBlock;
 			protected List<IMyGyro> gyros = new List<IMyGyro>();
-			protected List<IMyThrust> allThrusters = new List<IMyThrust>();
-			protected List<IMyThrust> brakingThrusters = new List<IMyThrust>();
-			protected List<IMyThrust> otherThrusters = new List<IMyThrust>();
+			protected Dictionary<IMyThrust, ThrustersFlag> thrustersAndFlags = new Dictionary<IMyThrust, ThrustersFlag>();
 			protected readonly string controllerName;
 			protected double timeSpentStationary = 0;
 			protected double shipCenterToEdge = 0;
 			protected bool isSetup = false;
 			protected double lastErr = 696969; //giggle
+			protected double maxInitialSpeed = 1;
+
+			protected readonly StepManager StepManager = new StepManager();
 
 			//--- Configurables
 			protected GPS destination = new GPS(0, 0, 0);
 			protected double distanceToStop = 200;
 			protected string brakingDir = "F";
-			protected string accelerationDir = "F";
+			protected string acceleratingDir = "F";
 			protected bool isControlPitch = true;
 			protected bool isControlYaw = true;
 			protected bool isControlRoll = true;
@@ -70,6 +83,87 @@ namespace IngameScript
 			{
 				this.controllerName = controllerName;
 				LoadBlocks();
+
+				Step stepOrientation = new Step("AIM_TO_TARGET", AimToTarget);
+				Step stepTravel = new Step("TRAVEL", Travel);
+				stepTravel.BeforeFirstRun = BeforeTravel;
+				Step stepEnd = new Step("END_TRAVEL", EndTravel);
+
+				StepManager.Init(stepOrientation, stepTravel, stepEnd);
+			}
+
+			private bool AimToTarget()
+			{
+				return Stabilize();
+			}
+
+			private bool BeforeTravel()
+			{
+				double distToTarget = GetDistanceToTarget();
+				if (distToTarget < 2 * shipCenterToEdge)
+					return true;
+				// Assuming we are accelerating half way and decelerating the other half
+				double distToStop = distToTarget / 2;
+				distToStop = Math.Min(distToStop, distanceToStop);
+				double maxDeceleration = MaxDeceleration();
+
+				this.maxInitialSpeed = PhysicsUtils.MaxInitialSpeedToStop(distToStop, MaxDeceleration());
+				// Game speed limit
+				this.maxInitialSpeed = Math.Max(this.maxInitialSpeed, 100D);
+
+				ActivateBlocks();
+
+				return false;
+			}
+
+			private bool Travel()
+			{
+				Vector3D shipVelocityVec = referenceBlock.GetShipVelocities().LinearVelocity;
+				double speed = shipVelocityVec.Length();
+
+				double distToTarget = GetDistanceToTarget();
+				if (distToTarget < 2 * shipCenterToEdge)
+					return true;
+
+				bool shouldBrake;
+				CheckBrake(out shouldBrake);
+				if (shouldBrake)
+				{
+					ManageBrake();
+					if (timeSpentStationary > SHUTDOWN_TIME)
+					{
+						Debug("timeSpentStationary", timeSpentStationary);
+						LOGGER.Debug("immobile => stop");
+						StopSystem();
+					}
+				} else
+				{
+					bool isEndSpeedUp = ;
+					// TODO t tends vers l'infini v doit tendre vers maxInitialSpeed
+					// donc a doit tendre vers 0 dont thrust override doit tendre vers 0
+
+					if (speed >= maxInitialSpeed)
+					{
+						// TODO do something for planet to not fall
+
+						// Stop accelerating more
+						GetThrusters(ThrustersFlag.Accelerating).ForEach(t => t.ThrustOverridePercentage = 0);
+					}
+
+					
+					if(speed <= )
+					{
+						// Accelerating more and more
+						GetThrusters(ThrustersFlag.Accelerating).ForEach(t => t.ThrustOverridePercentage += 0.01F);
+					}
+					return false;
+				}
+
+				return isEndSpeedUp;
+			}
+			private bool EndTravel()
+			{
+				throw new NotImplementedException();
 			}
 
 			protected override bool LoadBlocks()
@@ -77,9 +171,7 @@ namespace IngameScript
 				isSetup = true;
 
 				gyros.Clear();
-				allThrusters.Clear();
-				brakingThrusters.Clear();
-				otherThrusters.Clear();
+				thrustersAndFlags.Clear();
 
 				if (controllerName == "")
 				{
@@ -104,15 +196,17 @@ namespace IngameScript
 					isSetup = referenceBlock != null;
 				}
 
+
+				List<IMyThrust> allThrusters = new List<IMyThrust>();
 				p.GridTerminalSystem.GetBlocksOfType(gyros);
 				p.GridTerminalSystem.GetBlocksOfType(allThrusters);
 
 				if (referenceBlock != null)
 				{
-					GetThrusterOrientation();
+					GetThrusterOrientation(allThrusters);
 				}
 
-				if (brakingThrusters.Count == 0)
+				if (GetThrusters(ThrustersFlag.Braking).Count == 0)
 				{
 					isSetup = false;
 					p.Echo("CRITICAL: No braking thrusters were found");
@@ -143,7 +237,7 @@ namespace IngameScript
 					thisGyro.Enabled = true;
 				}
 
-				foreach (IMyThrust thisThruster in otherThrusters)
+				foreach (IMyThrust thisThruster in thrustersAndFlags.Keys)
 				{
 					thisThruster.Enabled = true;
 				}
@@ -152,19 +246,13 @@ namespace IngameScript
 			private void StopSystem()
 			{
 				// Stop thrusters de freinage
-				foreach (IMyThrust thisThrust in brakingThrusters)
+				foreach (IMyThrust thisThrust in thrustersAndFlags.Keys)
 				{
 					thisThrust.ThrustOverridePercentage = 0f;
 					//thisThrust.Enabled = false;
 				}
 				// Stop gyro override
 				StopGyros();
-				// Stop autres thrusters
-				foreach (IMyThrust thisThrust in otherThrusters)
-				{
-					thisThrust.ThrustOverridePercentage = 0f;
-					//thisThrust.Enabled = false;
-				}
 				// Reactive les dampeners
 				referenceBlock.DampenersOverride = true;
 
@@ -188,64 +276,43 @@ namespace IngameScript
 				}
 				if (isSetup)
 				{
-					// FOR rerun after reset
-					p.Runtime.UpdateFrequency = UPDATE_FREQUENCY;
-					bool shouldBrake;
-					bool shouldStabilize;
-					CheckStabilizeAndBrake(out shouldBrake, out shouldStabilize);
-					Debug("ShouldBrake ", shouldBrake);
-					//Debug("shouldStabilize ", shouldStabilize);
-					shouldStabilize = true;
-
-					double shipAcceleration = referenceBlock.GetNaturalGravity().Length();
-					//Debug("shipAcceleration", shipAcceleration);
-
-					double brakingSpeed = GetBrakingSpeed();
-					//Debug("brakingSpeed ", brakingSpeed);
-					ManageGyro(shouldStabilize, brakingSpeed);
-					ManageBrake(shouldBrake, brakingSpeed, shipAcceleration);
-					if (timeSpentStationary > SHUTDOWN_TIME)
-					{
-
-						Debug("timeSpentStationary", timeSpentStationary);
-						LOGGER.Debug("immobile => stop");
-						StopSystem();
-					}
-
-					referenceBlock.DampenersOverride = false;
-					ActivateBlocks();
+					StepManager.Run();
 				}
 			}
 
 			#region Thruster management
-			protected void GetThrusterOrientation()
+			protected void GetThrusterOrientation(List<IMyThrust> allThrusters)
 			{
-				brakingThrusters.Clear();
 				Vector3D vectBrakingDir = VectorUtils.GetDirection(referenceBlock, brakingDir);
+				Vector3D vectAcceleratingDir = VectorUtils.GetDirection(referenceBlock, acceleratingDir);
 
 				foreach (IMyThrust thisThrust in allThrusters)
 				{
 					var thrustDir = thisThrust.WorldMatrix.Forward;
-					bool sameDir = thrustDir == vectBrakingDir;
-
-					if (sameDir)
-						brakingThrusters.Add(thisThrust);
-					else
-						otherThrusters.Add(thisThrust);
+					bool isBraking = thrustDir == vectBrakingDir;
+					bool isAccelerating = thrustDir == vectAcceleratingDir;
+					ThrustersFlag flag = ThrustersFlag.All;
+					if (!isBraking)
+						flag ^= ThrustersFlag.Braking;
+					if (!isAccelerating)
+						flag ^= ThrustersFlag.Accelerating;
+					thrustersAndFlags.Add(thisThrust, flag);
 				}
 			}
 
-			private double GetBrakingDistanceThreshold(double shipAcceleration, Vector3D shipVelocityVec)
+			protected List<IMyThrust> GetThrusters(ThrustersFlag flag)
+			{
+				return thrustersAndFlags.Where(e => (e.Value & flag) != 0).Select(e => e.Key).ToList();
+			}
+			private double MaxDeceleration()
 			{
 				double forceSum = GetBrakingForce();
-				//some arbitrary number that will stop NaN cases
-				if (forceSum == 0)
-					return 1000d;
-
 				double mass = referenceBlock.CalculateShipMass().PhysicalMass;
-
-				//Echo($"Mass: {mass.ToString()}");
-				double maxDeceleration = forceSum / mass;
+				return forceSum / mass;
+			}
+			private double GetBrakingDistanceThreshold(double shipAcceleration, Vector3D shipVelocityVec)
+			{
+				double maxDeceleration = MaxDeceleration();
 				double effectiveDeceleration = maxDeceleration - shipAcceleration;
 				double wantedDeceleration = effectiveDeceleration * BURN_THRUST_PERCENTAGE;
 				//Echo($"Decel: {deceleration.ToString()}");
@@ -268,34 +335,38 @@ namespace IngameScript
 			protected void BrakingOn()
 			{
 				LOGGER.Debug("BrakingOn");
-				foreach (IMyThrust thisThrust in brakingThrusters)
+				foreach (KeyValuePair<IMyThrust, ThrustersFlag> e in thrustersAndFlags)
 				{
-					thisThrust.Enabled = true;
-					thisThrust.ThrustOverridePercentage = 1f;
-				}
-
-				foreach (IMyThrust thisThrust in otherThrusters)
-				{
-					thisThrust.ThrustOverridePercentage = 0.00001f;
+					IMyThrust thrust = e.Key;
+					ThrustersFlag flag = e.Value;
+					if((flag & ThrustersFlag.Braking) != 0)
+					{
+						thrust.Enabled = true;
+						thrust.ThrustOverridePercentage = 1f;
+					} else
+					{
+						thrust.ThrustOverridePercentage = 0.00001f;
+					}
 				}
 			}
 
 			protected void BrakingOff()
 			{
-				foreach (IMyThrust thisThrust in brakingThrusters)
+				LOGGER.Debug("BrakingOff");
+				foreach (KeyValuePair<IMyThrust, ThrustersFlag> e in thrustersAndFlags)
 				{
-					thisThrust.ThrustOverridePercentage = 0.00001f;
-				}
-
-				foreach (IMyThrust thisThrust in otherThrusters)
-				{
-					thisThrust.ThrustOverridePercentage = 0f;
+					IMyThrust thrust = e.Key;
+					ThrustersFlag flag = e.Value;
+					if ((flag & ThrustersFlag.Braking) != 0)
+						thrust.ThrustOverridePercentage = 0.00001f;
+					else
+						thrust.ThrustOverridePercentage = 0f;
 				}
 			}
 
 			protected double GetBrakingForce()
 			{
-				return brakingThrusters.Select(t => t.MaxEffectiveThrust).Sum();
+				return GetThrusters(ThrustersFlag.Braking).Select(t => t.MaxEffectiveThrust).Sum();
 			}
 			protected void BrakingThrust(double brakingSpeed, double shipAcceleration)
 			{
@@ -318,7 +389,7 @@ namespace IngameScript
 				lastErr = err;
 
 				float percentNeedToEnd = (float)(equillibriumThrustPercentage + deltaThrustPercentage) / 100f;
-				foreach (IMyThrust thisThrust in brakingThrusters)
+				foreach (IMyThrust thisThrust in GetThrusters(ThrustersFlag.Braking))
 				{
 					thisThrust.ThrustOverridePercentage = percentNeedToEnd;
 					thisThrust.Enabled = true;
@@ -329,29 +400,41 @@ namespace IngameScript
 				// si on fait pas ça sur une planete on va peut etre se crasher
 				if (false)
 				{
-					foreach (IMyThrust thisThrust in otherThrusters)
+					foreach (IMyThrust thisThrust in GetThrusters(ThrustersFlag.NonBraking))
 					{
 						thisThrust.Enabled = false;
 					}
 				}
 			}
-
 			#endregion
 
-			private double GetBrakingSpeed()
+			protected Vector3D GetVectorToTarget()
+			{
+				if (destination == null || destination.ToVector3D().IsZero())
+					return Vector3D.Zero;
+				return destination.ToVector3D() - referenceBlock.GetPosition();
+			}
+			protected double GetDistanceToTarget()
+			{
+				return GetVectorToTarget().Length();
+			}
+
+			private double GetSpeedOnNaturalGravityVect()
 			{
 				Vector3D acceleration = referenceBlock.GetNaturalGravity();
 				Vector3D shipVelocityVec = referenceBlock.GetShipVelocities().LinearVelocity;
 				return VectorUtils.Projection(shipVelocityVec, acceleration).Length() * Math.Sign(shipVelocityVec.Dot(acceleration));
 			}
-			private void CheckStabilizeAndBrake(out bool shouldBrake, out bool shouldStabilize)
+			private void CheckBrake(out bool shouldBrake)
 			{
 				//---Get speed
 				double currentSpeed = referenceBlock.GetShipSpeed();
-				Vector3D vectDest = destination.ToVector3D();
-				Vector3D pos = referenceBlock.GetPosition();
-				Vector3D vectDistanceToEnd = vectDest - pos;
-				double distanceToEnd = vectDistanceToEnd.Length();
+				double distanceToEnd = GetDistanceToTarget();
+				if (distanceToEnd == 0D)
+				{
+					shouldBrake = true;
+					return;
+				}
 				Vector3D shipVelocityVec = referenceBlock.GetShipVelocities().LinearVelocity;
 
 				Debug("currentSpeed", currentSpeed);
@@ -370,117 +453,108 @@ namespace IngameScript
 				distanceToEnd -= shipCenterToEdge;
 
 				double distanceToStartBraking = GetBrakingDistanceThreshold(gravityVecMagnitude, shipVelocityVec);
-				//this gives us a good safety cushion for stabilization procedures
-				double distanceToStartStabilize = distanceToStartBraking + 10 * currentSpeed;
 				Debug("distanceToStartBraking", distanceToStartBraking);
 				//Debug("distanceToStartStabilize", distanceToStartStabilize);
 
-				shouldBrake = false;
-				shouldStabilize = false;
+				shouldBrake = distanceToEnd <= distanceToStartBraking;
 				if (distanceToEnd < 100 && currentSpeed < 1)
 					timeSpentStationary += 1;
 				else
-				{
 					timeSpentStationary = 0;
-					shouldStabilize = distanceToEnd <= distanceToStartStabilize;
-					shouldBrake = distanceToEnd <= distanceToStartBraking;
-				}
 			}
 
-			private void ManageBrake(bool shouldBrake, double brakingSpeed, double shipAcceleration)
+			private void ManageBrake()
 			{
-				if (shouldBrake)
-				{
-					//kills dampeners to stop their interference with landing procedures
-					referenceBlock.DampenersOverride = false;
-					bool isBraking = brakingSpeed > FROM_BRAKING_TO_END_SPEED;
-					if (isBraking)
-						BrakingOn();
-					else
-					{
-						Debug("brakingSpeed", brakingSpeed);
-						LOGGER.Debug("!isBraking => Stop");
-						if (ATTEMPT_TO_LAND)
-							BrakingThrust(brakingSpeed, shipAcceleration);
-						else
-							StopSystem(); // Fin
-					}
-				}
+				double shipAcceleration = referenceBlock.GetNaturalGravity().Length();
+				//kills dampeners to stop their interference with landing procedures
+				referenceBlock.DampenersOverride = false;
+				double freeFallSpeed = GetSpeedOnNaturalGravityVect();
+				bool isNeedBraking = freeFallSpeed > FROM_BRAKING_TO_END_SPEED;
+				if (isNeedBraking)
+					BrakingOn();
 				else
-					BrakingOff();
+				{
+					Debug("freeFallSpeed", freeFallSpeed);
+					LOGGER.Debug("!isBraking => Stop");
+					if (ATTEMPT_TO_LAND)
+						BrakingThrust(freeFallSpeed, shipAcceleration);
+					else
+						StopSystem(); // Fin
+					}
 			}
 
 			#region Gyro management
 
-			private void ManageGyro(bool shouldStabilize, double brakingSpeed)
+			private bool Stabilize()
 			{
-
-				if (shouldStabilize)
+				double freeFallSpeed = GetSpeedOnNaturalGravityVect();
+				Vector3D alignmentVec;
+				if (freeFallSpeed > FROM_BRAKING_TO_END_SPEED)
 				{
 					Vector3D shipVelocityVec = referenceBlock.GetShipVelocities().LinearVelocity;
-					// V = Alignment vector
-					Vector3D v;
-					if (brakingSpeed > FROM_BRAKING_TO_END_SPEED)
-					{
-						v = shipVelocityVec;
-					}
-					else
-					{
-						// TODO tenir compte du vecteur gravité
-						Vector3D gravityVec = referenceBlock.GetNaturalGravity();
-						Vector3D toDestVec = destination.ToVector3D() - referenceBlock.GetPosition();
-						v = toDestVec;
-					}
-
-					//---Get Roll, Yaw and Pitch Angles 
-					var m = referenceBlock.WorldMatrix;
-
-					// Roll = rotation around forward/backward axis => to roll
-					// Pitch = rotation around left/right axis => to go up or down
-					// Yaw = rotation around up/down axis => to go left or right
-					// Pitch > 0 = pique du nez 
-					// | < 0 = lève le nez
-					// Yaw > 0 = tourne direction droite comme une voiture 
-					// | < 0 = gauche 
-					// Roll > 0 = tourne sur l'axe vers la gauche (eq touche A) 
-					// | < 0 = vers la droite (eq touche E)
-
-					var refF = VectorUtils.GetDirection(referenceBlock, brakingDir);
-					double pitchSpeed = 0;
-					double yawSpeed = 0;
-					double rollSpeed = 0;
-					GetPitchYawRoll(v, refF, ref pitchSpeed, ref yawSpeed, ref rollSpeed);
-
-					double pitch_deg = Math.Round(pitchSpeed / Math.PI * 180);
-					double yaw_deg = Math.Round(yawSpeed / Math.PI * 180);
-					double roll_deg = Math.Round(rollSpeed / Math.PI * 180);
-					Debug("pitch_deg", pitch_deg);
-					Debug("yaw_deg", yaw_deg);
-					Debug("roll_deg", roll_deg);
-
-					//---Enforce rotation speed limit
-					double sumSpeed = Math.Abs(rollSpeed) + Math.Abs(yawSpeed) + Math.Abs(pitchSpeed);
-					if (sumSpeed > 2 * Math.PI)
-					{
-						double scale = 2 * Math.PI / sumSpeed;
-						rollSpeed *= scale;
-						yawSpeed *= scale;
-						pitchSpeed *= scale;
-					}
-
-					if (!isControlPitch)
-						pitchSpeed = 0;
-					if (!isControlYaw)
-						yawSpeed = 0;
-					if (!isControlRoll)
-						rollSpeed = 0;
-					
-					ApplyGyroOverride(pitchSpeed, yawSpeed, rollSpeed);
+					alignmentVec = shipVelocityVec;
 				}
 				else
 				{
-					StopGyros();
+					// TODO tenir compte du vecteur gravité
+					Vector3D gravityVec = referenceBlock.GetNaturalGravity();
+					Vector3D toDestVec = destination.ToVector3D() - referenceBlock.GetPosition();
+					alignmentVec = toDestVec;
 				}
+
+				//---Get Roll, Yaw and Pitch Angles 
+				var m = referenceBlock.WorldMatrix;
+
+				// Roll = rotation around forward/backward axis => to roll
+				// Pitch = rotation around left/right axis => to go up or down
+				// Yaw = rotation around up/down axis => to go left or right
+				// Pitch > 0 = pique du nez 
+				// | < 0 = lève le nez
+				// Yaw > 0 = tourne direction droite comme une voiture 
+				// | < 0 = gauche 
+				// Roll > 0 = tourne sur l'axe vers la gauche (eq touche A) 
+				// | < 0 = vers la droite (eq touche E)
+
+				var refF = VectorUtils.GetDirection(referenceBlock, brakingDir);
+				double pitchSpeed = 0;
+				double yawSpeed = 0;
+				double rollSpeed = 0;
+				GetPitchYawRoll(alignmentVec, refF, ref pitchSpeed, ref yawSpeed, ref rollSpeed);
+
+				//double pitch_deg =ToDeg(pitchSpeed);
+				//double yaw_deg = ToDeg(yawSpeed);
+				//double roll_deg = ToDeg(rollSpeed);
+				//Debug("pitch_deg", pitch_deg);
+				//Debug("yaw_deg", yaw_deg);
+				//Debug("roll_deg", roll_deg);
+
+				//---Enforce rotation speed limit
+				double sumSpeed = Math.Abs(rollSpeed) + Math.Abs(yawSpeed) + Math.Abs(pitchSpeed);
+				if (sumSpeed > 2 * Math.PI)
+				{
+					double scale = 2 * Math.PI / sumSpeed;
+					rollSpeed *= scale;
+					yawSpeed *= scale;
+					pitchSpeed *= scale;
+				}
+
+				if (!isControlPitch)
+					pitchSpeed = 0;
+				if (!isControlYaw)
+					yawSpeed = 0;
+				if (!isControlRoll)
+					rollSpeed = 0;
+
+				ApplyGyroOverride(pitchSpeed, yawSpeed, rollSpeed);
+
+				// True if all rotation are < 1°
+				double delta = Math.PI / 180;
+				return Math.Abs(pitchSpeed) < delta && Math.Abs(yawSpeed) < delta && Math.Abs(rollSpeed) < delta;
+			}
+
+			private double ToDeg(double angleRad)
+			{
+				return Math.Round(angleRad / Math.PI * 180);
 			}
 
 			private void GetPitchYawRoll(Vector3D v, Vector3D refF, ref double pitchSpeed, ref double yawSpeed, ref double rollSpeed)
@@ -601,7 +675,107 @@ namespace IngameScript
 			}
 
 			#endregion
-			#region VARIABLE CONFIG
+
+			#region Ship Utilities
+			protected double GetShipFarthestEdgeDistance(IMyShipController reference)
+			{
+				MatrixD m = reference.WorldMatrix;
+				double d = GetEdgeDistance(reference, m.Forward);
+				d = Math.Max(d, GetEdgeDistance(reference, m.Backward));
+				d = Math.Max(d, GetEdgeDistance(reference, m.Left));
+				d = Math.Max(d, GetEdgeDistance(reference, m.Right));
+				d = Math.Max(d, GetEdgeDistance(reference, m.Up));
+				return Math.Max(d, GetEdgeDistance(reference, m.Down));
+			}
+
+			private double GetEdgeDistance(IMyShipController reference, Vector3D direction)
+			{
+				Vector3D edgeDirection = GetShipEdgeVector(reference, direction);
+				Vector3D edgePos = reference.GetPosition() + edgeDirection;
+				return Vector3D.Distance(reference.CenterOfMass, edgePos);
+			}
+
+			protected Vector3D GetShipEdgeVector(IMyTerminalBlock reference, Vector3D direction)
+			{
+				//get grid relative max and min
+				Vector3I gridMinimum = reference.CubeGrid.Min;
+				Vector3I gridMaximum = reference.CubeGrid.Max;
+
+				//get dimension of grid cubes
+				float gridSize = reference.CubeGrid.GridSize;
+
+				//get worldmatrix for the grid
+				MatrixD gridMatrix = reference.CubeGrid.WorldMatrix;
+
+				//convert grid coordinates to world coords
+				Vector3D worldMinimum = Vector3D.Transform(gridMinimum * gridSize, gridMatrix);
+				Vector3D worldMaximum = Vector3D.Transform(gridMaximum * gridSize, gridMatrix);
+
+				//get reference position
+				Vector3D origin = reference.GetPosition();
+
+				//compute max and min relative vectors
+				Vector3D minRelative = worldMinimum - origin;
+				Vector3D maxRelative = worldMaximum - origin;
+
+				//project relative vectors on desired direction
+				Vector3D minProjected = Vector3D.Dot(minRelative, direction) / direction.LengthSquared() * direction;
+				Vector3D maxProjected = Vector3D.Dot(maxRelative, direction) / direction.LengthSquared() * direction;
+
+				//check direction of the projections to determine which is correct
+				if (Vector3D.Dot(minProjected, direction) > 0)
+					return minProjected;
+				else
+					return maxProjected;
+			}
+
+			//Whip's Get Closest Block of Type Method variant 2 - 5/26/17
+			//Added optional ignore name variable
+			protected T GetClosestBlockOfType<T>(string name = "", string ignoreName = "") where T : class, IMyTerminalBlock
+			{
+				var allBlocks = new List<T>();
+
+				if (name == "")
+				{
+					if (ignoreName == "")
+						p.GridTerminalSystem.GetBlocksOfType(allBlocks);
+					else
+						p.GridTerminalSystem.GetBlocksOfType(allBlocks, block => !block.CustomName.ToLower().Contains(ignoreName.ToLower()));
+				}
+				else
+				{
+					if (ignoreName == "")
+						p.GridTerminalSystem.GetBlocksOfType(allBlocks, block => block.CustomName.ToLower().Contains(name.ToLower()));
+					else
+						p.GridTerminalSystem.GetBlocksOfType(allBlocks, block => block.CustomName.ToLower().Contains(name.ToLower()) && !block.CustomName.ToLower().Contains(ignoreName.ToLower()));
+				}
+
+				if (allBlocks.Count == 0)
+				{
+					return null;
+				}
+
+				var closestBlock = allBlocks[0];
+				var shortestDistance = Vector3D.DistanceSquared(p.Me.GetPosition(), closestBlock.GetPosition());
+				allBlocks.Remove(closestBlock); //remove this block from the list
+
+				foreach (T thisBlock in allBlocks)
+				{
+					var thisDistance = Vector3D.DistanceSquared(p.Me.GetPosition(), thisBlock.GetPosition());
+
+					if (thisDistance < shortestDistance)
+					{
+						closestBlock = thisBlock;
+						shortestDistance = thisDistance;
+					}
+					//otherwise move to next one
+				}
+
+				return closestBlock;
+			}
+			#endregion
+
+			#region Variables configuration
 
 			protected override void BuildConfig()
 			{
@@ -609,7 +783,7 @@ namespace IngameScript
 				config.Add("GPS", destination.ToString());
 				config.Add("distanceToStop", distanceToStop.ToString());
 				config.Add("brakingDir", brakingDir.ToString());
-				config.Add("accelerationDir", accelerationDir.ToString());
+				config.Add("accelerationDir", acceleratingDir.ToString());
 				config.Add("isControlPitch", isControlPitch.ToString());
 				config.Add("isControlYaw", isControlYaw.ToString());
 				config.Add("isControlRoll", isControlRoll.ToString());
@@ -622,7 +796,7 @@ namespace IngameScript
 				config.GetVariable("GPS", ref gps);
 				config.GetVariable("distanceToStop", ref distanceToStop);
 				config.GetVariable("brakingDir", ref brakingDir);
-				config.GetVariable("accelerationDir", ref accelerationDir);
+				config.GetVariable("accelerationDir", ref acceleratingDir);
 				config.GetVariable("isControlPitch", ref isControlPitch);
 				config.GetVariable("isControlYaw", ref isControlYaw);
 				config.GetVariable("isControlRoll", ref isControlRoll);
