@@ -27,22 +27,27 @@ namespace IngameScript
 			private Step CurrentStep { get; set; }
 			private bool FirstCallCurrentStep { get; set; } = true;
 
+			private readonly Logger LOGGER = Logger.GetDefaultInstance();
+
 			public void Init(params Step[] arrOrderedStep)
 			{
 				if (arrOrderedStep == null || arrOrderedStep.Length == 0)
 					return;
-
-				Init(arrOrderedStep[0]);
+				Step firstStep = arrOrderedStep[0];
+				Init(firstStep);
 				if (arrOrderedStep.Length > 1)
 				{
 					Step lastStep = FirstStep;
 					foreach (Step r in arrOrderedStep.Skip(1))
 					{
 						if (lastStep != null)
+						{
 							lastStep.NextStep = r;
+						}
 						lastStep = r;
 					}
-				}				
+				}
+				LOGGER.Debug(string.Join(" > ", arrOrderedStep.Select(s => s.Name)));
 			}
 
 			public void Init(Step s)

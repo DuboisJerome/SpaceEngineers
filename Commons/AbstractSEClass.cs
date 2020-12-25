@@ -25,28 +25,28 @@ namespace IngameScript
 		{
 			protected readonly MyGridProgram p;
 			protected readonly Logger LOGGER;
-            protected readonly ConfigUtils config;
+			protected readonly ConfigUtils config;
 
-            public AbstractSEClass(MyGridProgram p)
+			public AbstractSEClass(MyGridProgram p)
 			{
 				this.p = p;
-                this.LOGGER = new Logger(p.Me.GetSurface(0));
-                this.config = new ConfigUtils(p.Me);
-                BuildConfig();
+				this.LOGGER = Logger.GetDefaultInstance();
+				this.config = new ConfigUtils(p.Me);
+				BuildConfig();
 			}
 
 			protected abstract bool LoadBlocks();
 
-            protected virtual void BuildConfig() { }
-			
+			protected virtual void BuildConfig() { }
+
 			protected void Debug(string name, Vector3D val)
 			{
-                LOGGER.Debug(name + " = " + (val == null ? "NULL VAL" : "Vecteur(O,("+val.X+","+val.Y+","+val.Z+"))"));
-            }
-            protected void Debug<T>(string name, T val)
-			{
-                LOGGER.Debug(name + " = " + (val == null ? "NULL VAL" : val.ToString()));
+				LOGGER.Debug(name + " = " + (val == null ? "NULL VAL" : "Vecteur(O,(" + val.X + "," + val.Y + "," + val.Z + "))"));
 			}
-        }
-    }
+			protected void Debug<T>(string name, T val)
+			{
+				LOGGER.Debug(name + " = " + (val == null ? "NULL VAL" : val.ToString()));
+			}
+		}
+	}
 }

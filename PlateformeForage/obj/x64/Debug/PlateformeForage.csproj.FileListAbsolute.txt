@@ -99,7 +99,6 @@ C:\Users\Dubois\source\repos\SpaceEngineers\PlateformeForage\bin\System.Xml.XmlD
 C:\Users\Dubois\source\repos\SpaceEngineers\PlateformeForage\bin\System.Xml.XmlSerializer.dll
 C:\Users\Dubois\source\repos\SpaceEngineers\PlateformeForage\bin\System.Xml.XPath.dll
 C:\Users\Dubois\source\repos\SpaceEngineers\PlateformeForage\bin\System.Xml.XPath.XDocument.dll
-C:\Users\Dubois\source\repos\SpaceEngineers\PlateformeForage\bin\MDKUtilities.dll
 C:\Users\Dubois\source\repos\SpaceEngineers\PlateformeForage\bin\VRage.Network.dll
 C:\Users\Dubois\source\repos\SpaceEngineers\PlateformeForage\bin\HavokWrapper.dll
 C:\Users\Dubois\source\repos\SpaceEngineers\PlateformeForage\bin\ProtoBuf.Net.Core.dll

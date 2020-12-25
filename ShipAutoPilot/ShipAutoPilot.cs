@@ -36,22 +36,23 @@ namespace IngameScript
 				NonAccelerating = All ^ Accelerating // 5
 			}
 			#endregion
+
 			#region Const fields
 			public const UpdateType UPDATE_TYPE = UpdateType.Update1;
 			public const UpdateFrequency UPDATE_FREQUENCY = UpdateFrequency.Update1;
 
 			//Maximum in game speed. (change this if you use speed mods)
-			private const double MAX_SPEED = 100;
+			private const float MAX_SPEED = 100;
 			//Time (in cycle) that the ship must remain stationary before
-			private const double SHUTDOWN_TIME = 15;
+			private const float SHUTDOWN_TIME = 15;
 			//The speed (m/s) that the ship will move at once it has begun braking 
-			private const double FROM_BRAKING_TO_END_SPEED = 3;
+			private const float FROM_BRAKING_TO_END_SPEED = 3;
 			//If the code should attempt to land the drop pod or stop slightly above the ground
 			private const bool ATTEMPT_TO_LAND = false;
 
-			private const double TIME_MAX_CYCLE = 1.0 / 10;
-			private const double BURN_THRUST_PERCENTAGE = 0.80;
-			private const double SAFETY_CUSHION = 0.5;
+			private const float TIME_MAX_CYCLE = 1.0F / 10;
+			private const float BURN_THRUST_PERCENTAGE = 0.80F;
+			private const float SAFETY_CUSHION = 0.5F;
 
 			#endregion
 
@@ -60,19 +61,21 @@ namespace IngameScript
 			protected List<IMyGyro> gyros = new List<IMyGyro>();
 			protected Dictionary<IMyThrust, ThrustersFlag> thrustersAndFlags = new Dictionary<IMyThrust, ThrustersFlag>();
 			protected readonly string controllerName;
-			protected double timeSpentStationary = 0;
-			protected double shipCenterToEdge = 0;
+			protected float timeSpentStationary = 0;
+			protected float shipCenterToEdge = 0;
 			protected bool isSetup = false;
 			protected double lastErr = 696969; //giggle
-			protected double maxInitialSpeed = 1;
+			protected float maxInitialSpeed = 1;
 
-			protected readonly StepManager StepManager = new StepManager();
+			protected readonly StepManager StepManager;
 
 			//--- Configurables
 			protected GPS destination = new GPS(0, 0, 0);
-			protected double distanceToStop = 200;
+			protected float distanceToStop = 200;
+			// Direction where thrusters are facing
 			protected string brakingDir = "F";
-			protected string acceleratingDir = "F";
+			// Direction where thrusters are facing
+			protected string acceleratingDir = "B";
 			protected bool isControlPitch = true;
 			protected bool isControlYaw = true;
 			protected bool isControlRoll = true;
@@ -88,7 +91,7 @@ namespace IngameScript
 				Step stepTravel = new Step("TRAVEL", Travel);
 				stepTravel.BeforeFirstRun = BeforeTravel;
 				Step stepEnd = new Step("END_TRAVEL", EndTravel);
-
+				StepManager = new StepManager();
 				StepManager.Init(stepOrientation, stepTravel, stepEnd);
 			}
 
@@ -105,11 +108,11 @@ namespace IngameScript
 				// Assuming we are accelerating half way and decelerating the other half
 				double distToStop = distToTarget / 2;
 				distToStop = Math.Min(distToStop, distanceToStop);
-				double maxDeceleration = MaxDeceleration();
+				float maxDeceleration = MaxDeceleration();
 
-				this.maxInitialSpeed = PhysicsUtils.MaxInitialSpeedToStop(distToStop, MaxDeceleration());
+				this.maxInitialSpeed = (float)PhysicsUtils.MaxInitialSpeedToStop(distToStop, MaxDeceleration());
 				// Game speed limit
-				this.maxInitialSpeed = Math.Max(this.maxInitialSpeed, 100D);
+				this.maxInitialSpeed = Math.Max(this.maxInitialSpeed, 100F);
 
 				ActivateBlocks();
 
@@ -118,52 +121,46 @@ namespace IngameScript
 
 			private bool Travel()
 			{
-				Vector3D shipVelocityVec = referenceBlock.GetShipVelocities().LinearVelocity;
-				double speed = shipVelocityVec.Length();
-
 				double distToTarget = GetDistanceToTarget();
 				if (distToTarget < 2 * shipCenterToEdge)
 					return true;
 
-				bool shouldBrake;
-				CheckBrake(out shouldBrake);
+				bool isEnd = false;
+				bool shouldBrake = CheckBrake();
 				if (shouldBrake)
 				{
 					ManageBrake();
 					if (timeSpentStationary > SHUTDOWN_TIME)
 					{
 						Debug("timeSpentStationary", timeSpentStationary);
-						LOGGER.Debug("immobile => stop");
-						StopSystem();
+						isEnd = true;
 					}
 				} else
 				{
-					bool isEndSpeedUp = ;
-					// TODO t tends vers l'infini v doit tendre vers maxInitialSpeed
-					// donc a doit tendre vers 0 dont thrust override doit tendre vers 0
+					float shipMass = referenceBlock.CalculateShipMass().PhysicalMass;
+					float speed = (float)referenceBlock.GetShipSpeed();
+					float secondsUntilVmax = 1;
+					float minLimitToZero = 1 / 100;
+					float maxLimitPercent = 98 / 100;
+					// F = m*a
+					// v_t = a_0*t + v_0 => a_0 = (v_t - v_0) / t
+					// F = m * (v_t - v_0) / t
+					float maxForceRequiered = shipMass * (maxInitialSpeed - speed) / secondsUntilVmax;
+					float percentForceRequiered = maxForceRequiered / GetAcceleratingForce();
+					if (percentForceRequiered > maxLimitPercent)
+						percentForceRequiered = maxLimitPercent;
+					if (percentForceRequiered < minLimitToZero)
+						percentForceRequiered = 0F;
 
-					if (speed >= maxInitialSpeed)
-					{
-						// TODO do something for planet to not fall
-
-						// Stop accelerating more
-						GetThrusters(ThrustersFlag.Accelerating).ForEach(t => t.ThrustOverridePercentage = 0);
-					}
-
-					
-					if(speed <= )
-					{
-						// Accelerating more and more
-						GetThrusters(ThrustersFlag.Accelerating).ForEach(t => t.ThrustOverridePercentage += 0.01F);
-					}
-					return false;
+					GetThrusters(ThrustersFlag.Accelerating).ForEach(t => t.ThrustOverridePercentage = percentForceRequiered);
 				}
 
-				return isEndSpeedUp;
+				return isEnd;
 			}
 			private bool EndTravel()
 			{
-				throw new NotImplementedException();
+				StopSystem();
+				return true;
 			}
 
 			protected override bool LoadBlocks()
@@ -304,17 +301,17 @@ namespace IngameScript
 			{
 				return thrustersAndFlags.Where(e => (e.Value & flag) != 0).Select(e => e.Key).ToList();
 			}
-			private double MaxDeceleration()
+			private float MaxDeceleration()
 			{
-				double forceSum = GetBrakingForce();
-				double mass = referenceBlock.CalculateShipMass().PhysicalMass;
+				float forceSum = GetBrakingForce();
+				float mass = referenceBlock.CalculateShipMass().PhysicalMass;
 				return forceSum / mass;
 			}
-			private double GetBrakingDistanceThreshold(double shipAcceleration, Vector3D shipVelocityVec)
+			private double GetBrakingDistanceThreshold(float shipAcceleration, Vector3D shipVelocityVec)
 			{
-				double maxDeceleration = MaxDeceleration();
-				double effectiveDeceleration = maxDeceleration - shipAcceleration;
-				double wantedDeceleration = effectiveDeceleration * BURN_THRUST_PERCENTAGE;
+				float maxDeceleration = MaxDeceleration();
+				float effectiveDeceleration = maxDeceleration - shipAcceleration;
+				float wantedDeceleration = effectiveDeceleration * BURN_THRUST_PERCENTAGE;
 				//Echo($"Decel: {deceleration.ToString()}");
 
 				// If speed mod
@@ -364,46 +361,46 @@ namespace IngameScript
 				}
 			}
 
-			protected double GetBrakingForce()
+			protected float GetBrakingForce()
 			{
 				return GetThrusters(ThrustersFlag.Braking).Select(t => t.MaxEffectiveThrust).Sum();
 			}
+			protected float GetAcceleratingForce()
+			{
+				return GetThrusters(ThrustersFlag.Accelerating).Select(t => t.MaxEffectiveThrust).Sum();
+			}
 			protected void BrakingThrust(double brakingSpeed, double shipAcceleration)
 			{
-				double forceSum = GetBrakingForce();
+				float forceSum = GetBrakingForce();
 
 				//Calculate equillibrium thrust ratio
-				var mass = referenceBlock.CalculateShipMass().PhysicalMass;
-				var equillibriumThrustPercentage = mass * shipAcceleration / forceSum * 100;
+				float mass = referenceBlock.CalculateShipMass().PhysicalMass;
+				double equillibriumThrustPercentage = mass * shipAcceleration / forceSum * 100;
 
 				//PD controller
-				var err = brakingSpeed - FROM_BRAKING_TO_END_SPEED;
+				double err = brakingSpeed - FROM_BRAKING_TO_END_SPEED;
 				double errDerivative = (lastErr == 696969) ?
 					0 :
 					(err - lastErr) / TIME_MAX_CYCLE;
 
 				//This is the thing we will add to correct our speed
-				double kP = 5;
-				double kD = 2;
-				var deltaThrustPercentage = kP * err + kD * errDerivative;
+				float kP = 5;
+				float kD = 2;
+				double deltaThrustPercentage = kP * err + kD * errDerivative;
 				lastErr = err;
 
 				float percentNeedToEnd = (float)(equillibriumThrustPercentage + deltaThrustPercentage) / 100f;
-				foreach (IMyThrust thisThrust in GetThrusters(ThrustersFlag.Braking))
-				{
-					thisThrust.ThrustOverridePercentage = percentNeedToEnd;
-					thisThrust.Enabled = true;
-				}
+				GetThrusters(ThrustersFlag.Braking).ForEach(t => {
+					t.ThrustOverridePercentage = percentNeedToEnd;
+					t.Enabled = true;
+				});
 
 				// TODO revoir fonctionnement planete vs espace, 
 				// si on fait ça dans l'espace on va dériver, 
 				// si on fait pas ça sur une planete on va peut etre se crasher
 				if (false)
 				{
-					foreach (IMyThrust thisThrust in GetThrusters(ThrustersFlag.NonBraking))
-					{
-						thisThrust.Enabled = false;
-					}
+					GetThrusters(ThrustersFlag.NonBraking).ForEach(t => t.Enabled = false);
 				}
 			}
 			#endregion
@@ -425,15 +422,14 @@ namespace IngameScript
 				Vector3D shipVelocityVec = referenceBlock.GetShipVelocities().LinearVelocity;
 				return VectorUtils.Projection(shipVelocityVec, acceleration).Length() * Math.Sign(shipVelocityVec.Dot(acceleration));
 			}
-			private void CheckBrake(out bool shouldBrake)
+			private bool CheckBrake()
 			{
 				//---Get speed
 				double currentSpeed = referenceBlock.GetShipSpeed();
 				double distanceToEnd = GetDistanceToTarget();
 				if (distanceToEnd == 0D)
 				{
-					shouldBrake = true;
-					return;
+					return true;
 				}
 				Vector3D shipVelocityVec = referenceBlock.GetShipVelocities().LinearVelocity;
 
@@ -452,15 +448,16 @@ namespace IngameScript
 				}
 				distanceToEnd -= shipCenterToEdge;
 
-				double distanceToStartBraking = GetBrakingDistanceThreshold(gravityVecMagnitude, shipVelocityVec);
+				float distanceToStartBraking = (float)GetBrakingDistanceThreshold((float)gravityVecMagnitude, shipVelocityVec);
 				Debug("distanceToStartBraking", distanceToStartBraking);
 				//Debug("distanceToStartStabilize", distanceToStartStabilize);
 
-				shouldBrake = distanceToEnd <= distanceToStartBraking;
+				bool shouldBrake = distanceToEnd <= distanceToStartBraking;
 				if (distanceToEnd < 100 && currentSpeed < 1)
 					timeSpentStationary += 1;
 				else
 					timeSpentStationary = 0;
+				return shouldBrake;
 			}
 
 			private void ManageBrake()
@@ -487,7 +484,7 @@ namespace IngameScript
 
 			private bool Stabilize()
 			{
-				double freeFallSpeed = GetSpeedOnNaturalGravityVect();
+				float freeFallSpeed = (float)GetSpeedOnNaturalGravityVect();
 				Vector3D alignmentVec;
 				if (freeFallSpeed > FROM_BRAKING_TO_END_SPEED)
 				{
@@ -521,9 +518,9 @@ namespace IngameScript
 				double rollSpeed = 0;
 				GetPitchYawRoll(alignmentVec, refF, ref pitchSpeed, ref yawSpeed, ref rollSpeed);
 
-				//double pitch_deg =ToDeg(pitchSpeed);
-				//double yaw_deg = ToDeg(yawSpeed);
-				//double roll_deg = ToDeg(rollSpeed);
+				//float pitch_deg =ToDeg(pitchSpeed);
+				//float yaw_deg = ToDeg(yawSpeed);
+				//float roll_deg = ToDeg(rollSpeed);
 				//Debug("pitch_deg", pitch_deg);
 				//Debug("yaw_deg", yaw_deg);
 				//Debug("roll_deg", roll_deg);
@@ -552,7 +549,7 @@ namespace IngameScript
 				return Math.Abs(pitchSpeed) < delta && Math.Abs(yawSpeed) < delta && Math.Abs(rollSpeed) < delta;
 			}
 
-			private double ToDeg(double angleRad)
+			private double ToDeg(float angleRad)
 			{
 				return Math.Round(angleRad / Math.PI * 180);
 			}
@@ -677,10 +674,10 @@ namespace IngameScript
 			#endregion
 
 			#region Ship Utilities
-			protected double GetShipFarthestEdgeDistance(IMyShipController reference)
+			protected float GetShipFarthestEdgeDistance(IMyShipController reference)
 			{
 				MatrixD m = reference.WorldMatrix;
-				double d = GetEdgeDistance(reference, m.Forward);
+				float d = GetEdgeDistance(reference, m.Forward);
 				d = Math.Max(d, GetEdgeDistance(reference, m.Backward));
 				d = Math.Max(d, GetEdgeDistance(reference, m.Left));
 				d = Math.Max(d, GetEdgeDistance(reference, m.Right));
@@ -688,11 +685,11 @@ namespace IngameScript
 				return Math.Max(d, GetEdgeDistance(reference, m.Down));
 			}
 
-			private double GetEdgeDistance(IMyShipController reference, Vector3D direction)
+			private float GetEdgeDistance(IMyShipController reference, Vector3D direction)
 			{
 				Vector3D edgeDirection = GetShipEdgeVector(reference, direction);
 				Vector3D edgePos = reference.GetPosition() + edgeDirection;
-				return Vector3D.Distance(reference.CenterOfMass, edgePos);
+				return (float)Vector3D.Distance(reference.CenterOfMass, edgePos);
 			}
 
 			protected Vector3D GetShipEdgeVector(IMyTerminalBlock reference, Vector3D direction)

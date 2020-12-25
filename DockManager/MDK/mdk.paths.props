@@ -2,9 +2,9 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MDKVersion>1.3.1</MDKVersion>
-    <MDKGameBinPath>d:\program files\steam\SteamApps\common\SpaceEngineers\Bin64</MDKGameBinPath>
-    <MDKInstallPath>c:\users\jeux\appdata\local\microsoft\visualstudio\16.0_b64ca505\extensions\tslwr3pw.jp3</MDKInstallPath>
-    <MDKOutputPath>C:\Users\Jeux\AppData\Roaming\SpaceEngineers\IngameScripts\local</MDKOutputPath>
+    <MDKGameBinPath>d:\steam\SteamApps\common\SpaceEngineers\Bin64</MDKGameBinPath>
+    <MDKInstallPath>c:\users\dubois\appdata\local\microsoft\visualstudio\16.0_424accc9\extensions\tpfvgtiw.d3m</MDKInstallPath>
+    <MDKOutputPath>C:\Users\Dubois\AppData\Roaming\SpaceEngineers\IngameScripts\local</MDKOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Sandbox.Common">

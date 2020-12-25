@@ -30,30 +30,42 @@ namespace IngameScript
 
 			private readonly IMyTextSurface _surface;
 
-			private readonly MyGridProgram _p;
 			private string lastLine;
 			private List<string> _sb = new List<string>();
 			public Level MinLvl { get; set; } = Level.DEBUG;
 
-			public Logger(MyGridProgram p)
+			private static Logger DEFAULT_INSTANCE;
+			
+			public static Logger GetDefaultInstance()
 			{
-				this._p = p;
-				this._surface = p.Me.GetSurface(0);
+				if(DEFAULT_INSTANCE == null)
+					throw new InvalidOperationException("Logger is null, it should be init in Program ctor");
+				return DEFAULT_INSTANCE;
+			}
+
+			public static void InitDefaultInstance(MyGridProgram p)
+			{
+				if(DEFAULT_INSTANCE == null)
+					DEFAULT_INSTANCE = new Logger(p);
+			}
+
+			public Logger(MyGridProgram p) : this(p.Me.GetSurface(0), p)
+			{}
+
+			public Logger(IMyTextSurface s, MyGridProgram p = null)
+			{
+				this._surface = s;
 				if (this._surface == null)
 				{
-					p.Echo("No Logger found");
+					if (p != null)
+						p.Echo("No Logger found");
 					return;
 				}
 				else
 				{
-					p.Echo("Logger surface found");
+					if (p != null)
+						p.Echo("Logger surface found");
 				}
-				this._surface.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
-			}
-
-			public Logger(IMyTextSurface s)
-			{
-				this._surface = s;
 				this._surface.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
 			}
 
@@ -92,10 +104,6 @@ namespace IngameScript
 					_sb.RemoveRange(N, _sb.Count-N);
 				}
 				this._surface.WriteText(String.Join(Environment.NewLine, _sb));
-				if(_p != null)
-				{
-					_p.Echo(_sb.ToString());
-				}
 			}
 
 			public void Clear()

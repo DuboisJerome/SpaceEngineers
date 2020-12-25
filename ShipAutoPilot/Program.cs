@@ -46,6 +46,7 @@ namespace IngameScript
 
 		public Program()
 		{
+			Logger.InitDefaultInstance(this);
 			Runtime.UpdateFrequency = UpdateFrequency.None;
 		}
 

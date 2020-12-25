@@ -38,15 +38,21 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShipAutoPilot", "ShipAutoPi
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		AbstractSupplyShip\AbstractSupplyShip.projitems*{22bb5103-f0c4-4a4a-86bd-1946c4568b6f}*SharedItemsImports = 4
+		Commons\Commons.projitems*{22bb5103-f0c4-4a4a-86bd-1946c4568b6f}*SharedItemsImports = 4
+		Abstract Automatic Mining System\Abstract Automatic Mining System.projitems*{3eb7a9e8-162e-4840-a4ad-8bf68f53ab90}*SharedItemsImports = 4
+		Commons\Commons.projitems*{3eb7a9e8-162e-4840-a4ad-8bf68f53ab90}*SharedItemsImports = 4
 		Commons\Commons.projitems*{54eac39e-4fda-4590-8c16-509e7aa66e12}*SharedItemsImports = 13
 		AbstractMasterSlaveInterComm\AbstractMasterSlaveInterComm.projitems*{57ee037e-566a-4498-a014-5394b75199b6}*SharedItemsImports = 13
 		AbstractSupplyShip\AbstractSupplyShip.projitems*{61eba249-19f3-48b6-a25b-a4cee90168ba}*SharedItemsImports = 13
 		Commons\Commons.projitems*{6abd49bf-d472-4d6d-965c-ff0291bfe22c}*SharedItemsImports = 4
 		Abstract Automatic Mining System\Abstract Automatic Mining System.projitems*{743e7165-f6f8-446a-9cba-96c57f892025}*SharedItemsImports = 4
 		Commons\Commons.projitems*{743e7165-f6f8-446a-9cba-96c57f892025}*SharedItemsImports = 4
+		Commons\Commons.projitems*{9396653e-ca7f-4c85-a344-f782d91dd874}*SharedItemsImports = 4
 		AbstractMasterSlaveInterComm\AbstractMasterSlaveInterComm.projitems*{a03058ca-d0f1-4f42-8987-2eaab908fb41}*SharedItemsImports = 4
 		Commons\Commons.projitems*{a03058ca-d0f1-4f42-8987-2eaab908fb41}*SharedItemsImports = 4
 		Abstract Automatic Mining System\Abstract Automatic Mining System.projitems*{a63ecb3a-eb66-428f-9371-09e22b1224b5}*SharedItemsImports = 13
+		Commons\Commons.projitems*{b4b980ee-b75d-4491-bee2-1f778ee55fd4}*SharedItemsImports = 4
 		AbstractMasterSlaveInterComm\AbstractMasterSlaveInterComm.projitems*{ce2a64c7-e16e-4c4c-ae1e-517c4485d662}*SharedItemsImports = 4
 		Commons\Commons.projitems*{ce2a64c7-e16e-4c4c-ae1e-517c4485d662}*SharedItemsImports = 4
 	EndGlobalSection
